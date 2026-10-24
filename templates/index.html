@@ -1,0 +1,61 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CM-84 OS 1</title>
+</head>
+
+<body>
+    <h1 style="font-size: 50px; text-align: center;">
+        🎉 GRAND OPENING! 🎉
+    </h1>
+
+    <h1 style="font-size: 45px; text-align: center;">
+        🚀 CM-84 Developer Beta OS 1.0.1 🚀
+    </h1>
+
+    <h2 style="text-align: center;">
+        🐍 Powered by Python • Flask • HTML
+    </h2>
+
+    <p style="text-align: center;">
+        From the terminal to the browser. A new era begins!
+        It will be released to the public on November 1, 2026!
+    </p>
+
+    <h1>CM-84 Calculator</h1>
+
+    <h2>Exponentiation</h2>
+
+    <input type="number" id="number" placeholder="Enter a number">
+
+    <button onclick="calculate()">Calculate Square</button>
+
+    <p id="result"></p>
+
+    <h2>🧮 Basic Arithmetic</h2>
+
+    <input type="number" id="first" placeholder="First number" step="any">
+
+    <select id="operation">
+        <option value="add">Addition (+)</option>
+        <option value="subtract">Subtraction (-)</option>
+        <option value="multiply">Multiplication (×)</option>
+        <option value="divide">Division (÷)</option>
+    </select>
+
+    <input type="number" id="second" placeholder="Second number" step="any">
+
+    <button onclick="calculateArithmetic()">Calculate</button>
+
+    <p id="arithmeticResult"></p>
+
+    <!-- Algebra Calculator Navigation -->
+    <a href="{{ url_for('algebra_page') }}">Algebraic Calculator</a>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>

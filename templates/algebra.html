@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CM-84 OS 1</title>
+</head>
+
+<body>
+    <h1 style="font-size: 50px; text-align: center;">
+    🎉 GRAND OPENING! 🎉
+</h1>
+
+<h1 style="font-size: 45px; text-align: center;">
+    🚀 CM-84 Developer Beta OS 1.0.1 🚀
+</h1>
+
+<h2 style="text-align: center;"> 
+    🐍 Powered by Python • Flask • HTML
+</h2>
+
+<p style="text-align: center;">
+    From the terminal to the browser. A new era begins! It will be released to the public on November 1, 2026!
+</p>
+    <h1>CM-84 Algebraic Calculator</h1>
+
+    <input type="text" id="equation" placeholder="Enter your algebraic equation">
+    <div> 
+        <button type="button" onclick="solveAlgebra('solve')">
+    Solve for x
+</button>
+        <button type="button" onclick="solveAlgebra('simplify')">Simplify</button>
+        <button type="button" onclick="solveAlgebra('graph')">Graph</button>
+        
+    </div>
+    <p id="result"></p>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
+
+
