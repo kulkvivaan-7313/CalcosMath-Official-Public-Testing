@@ -2,8 +2,29 @@
 from flask import Flask, jsonify, render_template, request
 from main import addition, subtraction, multiplication, division, square
 from main import solve_algebra
+import sqlite3
+from accounts import create_user, create_verification_token, verify_email_token
 
 app = Flask(__name__)
+
+@app.route("/verify-email")
+def verify_email():
+    token = request.args.get("token")
+
+    if not token:
+        return "Missing verification token.", 400
+
+    connection = sqlite3.connect("accounts.db")
+
+    try:
+        verified = verify_email_token(connection, token)
+    finally:
+        connection.close()
+
+    if verified:
+        return "Your email has been verified!"
+
+    return "Invalid or expired verification link.", 400
 
 
 @app.route("/")
@@ -60,6 +81,40 @@ def algebra_api():
 
     return jsonify({"result": result})
 
+@app.route("/signup", methods=["POST"])
+def signup():
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid request"}), 400
+
+    username = data.get("username")
+    email = data.get("email")
+    password = data.get("password")
+
+    if not all(isinstance(value, str) and value.strip()
+               for value in (username, email, password)):
+        return jsonify({"error": "All fields are required"}), 400
+
+    if len(password) < 12:
+        return jsonify({"error": "Password must be at least 12 characters"}), 400
+
+    connection = sqlite3.connect("accounts.db")
+
+    try:
+        user_id = create_user(connection, username, email, password)
+        verification_token = create_verification_token(connection, user_id)
+
+    except sqlite3.IntegrityError:
+        return jsonify({"error": "Username or email already exists"}), 409
+
+    finally:
+        connection.close()
+
+    return jsonify({
+        "message": "Account created. Email verification required.",
+        "user_id": user_id
+    }), 201
 
 if __name__ == "__main__":
     app.run()
