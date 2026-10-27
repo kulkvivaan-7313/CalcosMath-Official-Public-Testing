@@ -163,4 +163,28 @@ if __name__ == "__main__":
 
     print(cursor.fetchone())
 
+    cursor.execute("""
+    SELECT user_id, token_hash, expires_at
+    FROM email_verifications
+    WHERE user_id = 3
+""")
+
+    result = cursor.fetchone()
+
+    if result:
+        print("User ID:", result[0])
+        print("Token saved:", bool(result[1]))
+        print("Expires at:", result[2])
+    else:
+        print("No verification token found for user 3.")
+
+    def get_user_by_email(connection, email):
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT id FROM users WHERE email = ?",
+            (email,)
+        )
+        return cursor.fetchone()
+
+
     connection.close()

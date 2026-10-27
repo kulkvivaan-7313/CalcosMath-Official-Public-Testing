@@ -3,7 +3,10 @@ from flask import Flask, jsonify, render_template, request
 from main import addition, subtraction, multiplication, division, square
 from main import solve_algebra
 import sqlite3
-from accounts import create_user, create_verification_token, verify_email_token
+from accounts import create_user, create_verification_token, verify_email_token, get_user_by_email
+
+
+from mailer import send_verification_email
 
 app = Flask(__name__)
 
@@ -83,6 +86,7 @@ def algebra_api():
 
 @app.route("/signup", methods=["POST"])
 def signup():
+
     data = request.get_json(silent=True)
 
     if not isinstance(data, dict):
@@ -104,6 +108,7 @@ def signup():
     try:
         user_id = create_user(connection, username, email, password)
         verification_token = create_verification_token(connection, user_id)
+        send_verification_email(email,verification_token)
 
     except sqlite3.IntegrityError:
         return jsonify({"error": "Username or email already exists"}), 409
@@ -115,6 +120,37 @@ def signup():
         "message": "Account created. Email verification required.",
         "user_id": user_id
     }), 201
+
+
+@app.route("/resend-verification", methods=["POST"])
+def resend_verification():
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid request"}), 400
+
+    email = data.get("email")
+
+    if not isinstance(email, str) or not email.strip():
+        return jsonify({"error": "Email is required"}), 400
+
+    connection = sqlite3.connect("accounts.db")
+
+    try:
+        user = get_user_by_email(connection, email.strip())
+
+        if user is None:
+            return jsonify({"error": "Account not found"}), 404
+
+        user_id = user[0]
+        token = create_verification_token(connection, user_id)
+
+    finally:
+        connection.close()
+
+    send_verification_email(email.strip(), token)
+
+    return jsonify({"message": "Verification email sent"}), 200
 
 if __name__ == "__main__":
     app.run()
