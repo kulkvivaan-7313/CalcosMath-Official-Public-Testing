@@ -6,12 +6,39 @@ import sqlite3
 from accounts import create_user, create_verification_token, verify_email_token, get_user_by_email
 
 
-from mailer import send_verification_email
+from mailer import VerificationEmailError, send_verification_email
 
 app = Flask(__name__)
 
-@app.route("/verify-email")
+@app.route("/verify-email", methods=["GET", "POST"])
 def verify_email():
+    if request.method == "POST":
+        data = request.get_json(silent=True)
+
+        if not isinstance(data, dict):
+            data = request.form.to_dict()
+
+        email = data.get("email")
+        code = data.get("code")
+
+        if not isinstance(email, str) or not email.strip():
+            return jsonify({"error": "Email is required"}), 400
+
+        if not isinstance(code, str) or len(code) != 6 or not code.isdigit():
+            return jsonify({"error": "Enter the 6-digit verification code"}), 400
+
+        connection = sqlite3.connect("accounts.db")
+
+        try:
+            verified = verify_email_token(connection, code, email.strip())
+        finally:
+            connection.close()
+
+        if verified:
+            return jsonify({"message": "Your email has been verified!"})
+
+        return jsonify({"error": "Invalid or expired verification code"}), 400
+
     token = request.args.get("token")
 
     if not token:
@@ -89,6 +116,9 @@ def signup():
 
     data = request.get_json(silent=True)
 
+    if data is None:
+        data = request.form.to_dict()
+
     if not isinstance(data, dict):
         return jsonify({"error": "Invalid request"}), 400
 
@@ -108,13 +138,21 @@ def signup():
     try:
         user_id = create_user(connection, username, email, password)
         verification_token = create_verification_token(connection, user_id)
-        send_verification_email(email,verification_token)
 
     except sqlite3.IntegrityError:
         return jsonify({"error": "Username or email already exists"}), 409
 
     finally:
         connection.close()
+
+    try:
+        send_verification_email(email, verification_token)
+    except VerificationEmailError as error:
+        app.logger.warning("Signup verification email could not be sent.")
+        return jsonify({
+            "error": str(error),
+            "account_created": True
+        }), 503
 
     return jsonify({
         "message": "Account created. Email verification required.",
@@ -142,16 +180,22 @@ def resend_verification():
         if user is None:
             return jsonify({"error": "Account not found"}), 404
 
-        user_id = user[0]
+        user_id, email_verified = user
+        if email_verified:
+            return jsonify({"error": "This email is already verified"}), 409
+
         token = create_verification_token(connection, user_id)
 
     finally:
         connection.close()
 
-    send_verification_email(email.strip(), token)
+    try:
+        send_verification_email(email.strip(), token)
+    except VerificationEmailError as error:
+        app.logger.warning("Resend verification email could not be sent.")
+        return jsonify({"error": str(error)}), 503
 
     return jsonify({"message": "Verification email sent"}), 200
 
 if __name__ == "__main__":
     app.run()
-

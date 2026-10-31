@@ -55,7 +55,46 @@
     <!-- Algebra Calculator Navigation -->
     <a href="{{ url_for('algebra_page') }}">Algebraic Calculator</a>
 
+    <hr>
+
+    <hr>
+
+<h1>👤 Create Your CM-84 Account</h1>
+
+<form id="signupForm" method="post" action="{{ url_for('signup') }}">
+    <input type="text" id="username" name="username" placeholder="Username" required>
+
+    <br><br>
+
+    <input type="email" id="email" name="email" placeholder="Email address" required>
+
+    <br><br>
+
+    <input type="password" id="password"
+           name="password"
+           placeholder="Password (12 characters minimum)"
+           minlength="12" required>
+
+    <br><br>
+
+    <button type="submit">Create Account</button>
+</form>
+
+<p id="signupResult"></p>
+
+<form id="verificationForm" hidden>
+    <label for="verificationCode">Enter the verification code sent to your email:</label>
+    <input type="text" id="verificationCode" name="code"
+           inputmode="numeric" autocomplete="one-time-code"
+           pattern="[0-9]{6}" minlength="6" maxlength="6" required>
+    <button type="submit">Verify Email</button>
+    <button type="button" id="resendVerificationButton">Resend Code</button>
+</form>
+
+<p id="verificationResult"></p>
+
     <script src="{{ url_for('static', filename='script.js') }}"></script>
+
 
 </body>
 </html>

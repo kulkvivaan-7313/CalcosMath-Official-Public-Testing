@@ -6,16 +6,23 @@ import hashlib
 from datetime import datetime, timedelta, timezone
 
 
-def verify_email_token(connection, token):
+def verify_email_token(connection, token, email=None):
     token_hash = hashlib.sha256(token.encode()).hexdigest()
-
     cursor = connection.cursor()
 
-    cursor.execute("""
-        SELECT user_id, expires_at
-        FROM email_verifications
-        WHERE token_hash = ?
-    """, (token_hash,))
+    if email is None:
+        cursor.execute("""
+            SELECT user_id, expires_at
+            FROM email_verifications
+            WHERE token_hash = ?
+        """, (token_hash,))
+    else:
+        cursor.execute("""
+            SELECT email_verifications.user_id, email_verifications.expires_at
+            FROM email_verifications
+            JOIN users ON users.id = email_verifications.user_id
+            WHERE email_verifications.token_hash = ? AND users.email = ?
+        """, (token_hash, email))
 
     result = cursor.fetchone()
 
@@ -42,28 +49,24 @@ def verify_email_token(connection, token):
     connection.commit()
     return True
 
+
 def create_user(connection, username, email, password):
     cursor = connection.cursor()
 
-    # Hash the password before storing it.
     password_hash = generate_password_hash(password)
 
-    # Create the account in SQLite.
     cursor.execute("""
         INSERT INTO users (username, email, password_hash)
         VALUES (?, ?, ?)
     """, (username, email, password_hash))
 
-    # Save the account permanently.
     connection.commit()
 
-    # Return the newly created user's ID.
     return cursor.lastrowid
 
-    
 
 def create_verification_token(connection, user_id):
-    token = secrets.token_urlsafe(32)
+    token = f"{secrets.randbelow(1_000_000):06d}"
     token_hash = hashlib.sha256(token.encode()).hexdigest()
 
     expires_at = (
@@ -81,14 +84,25 @@ def create_verification_token(connection, user_id):
     connection.commit()
 
     return token
+
+
+def get_user_by_email(connection, email):
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT id, email_verified FROM users WHERE email = ?",
+        (email,)
+    )
+
+    return cursor.fetchone()
+
+
 # This section runs ONLY when accounts.py is executed directly.
 if __name__ == "__main__":
 
-    # Open the local SQLite database.
     connection = sqlite3.connect("accounts.db")
     cursor = connection.cursor()
 
-    # Create the users table.
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
@@ -99,7 +113,6 @@ if __name__ == "__main__":
         )
     """)
 
-    # Insert a sample account.
     username = "text user"
     email = "text@example.com"
     password = "temporary_test_password"
@@ -111,7 +124,6 @@ if __name__ == "__main__":
         VALUES (?, ?, ?)
     """, (username, email, password_hash))
 
-    # Create the email verification table.
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS email_verifications (
             user_id INTEGER PRIMARY KEY,
@@ -133,58 +145,5 @@ if __name__ == "__main__":
 
     for user in users:
         print(user)
-
-    # Generate a verification token.
-    verification_token = secrets.token_urlsafe(32)
-    print("Verification token Generated")
-
-    token_hash = hashlib.sha256(
-        verification_token.encode()
-    ).hexdigest()
-
-    expires_at = (
-        datetime.now(timezone.utc) + timedelta(minutes=15)
-    ).isoformat()
-
-    cursor.execute("""
-        INSERT OR REPLACE INTO email_verifications
-        (user_id, token_hash, expires_at)
-        VALUES (?, ?, ?) 
-    """, (1, token_hash, expires_at))
-
-    connection.commit()
-    print("Verification token saved!")
-
-    cursor.execute("""
-        SELECT username, email_verified
-        FROM users
-        WHERE id = 1
-    """)
-
-    print(cursor.fetchone())
-
-    cursor.execute("""
-    SELECT user_id, token_hash, expires_at
-    FROM email_verifications
-    WHERE user_id = 3
-""")
-
-    result = cursor.fetchone()
-
-    if result:
-        print("User ID:", result[0])
-        print("Token saved:", bool(result[1]))
-        print("Expires at:", result[2])
-    else:
-        print("No verification token found for user 3.")
-
-    def get_user_by_email(connection, email):
-        cursor = connection.cursor()
-        cursor.execute(
-            "SELECT id FROM users WHERE email = ?",
-            (email,)
-        )
-        return cursor.fetchone()
-
 
     connection.close()
