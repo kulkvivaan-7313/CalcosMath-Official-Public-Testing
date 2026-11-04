@@ -4,6 +4,40 @@ from werkzeug.security import generate_password_hash
 import secrets
 import hashlib
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+
+DATABASE_PATH = Path(__file__).resolve().with_name("accounts.db")
+
+
+def initialize_database():
+    connection = sqlite3.connect(DATABASE_PATH)
+
+    try:
+        cursor = connection.cursor()
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY,
+                username TEXT NOT NULL UNIQUE,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                email_verified INTEGER NOT NULL DEFAULT 0
+            )
+        """)
+
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS email_verifications (
+                user_id INTEGER PRIMARY KEY,
+                token_hash TEXT NOT NULL,
+                expires_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id)
+            )
+        """)
+
+        connection.commit()
+    finally:
+        connection.close()
 
 
 def verify_email_token(connection, token, email=None):
@@ -100,18 +134,9 @@ def get_user_by_email(connection, email):
 # This section runs ONLY when accounts.py is executed directly.
 if __name__ == "__main__":
 
-    connection = sqlite3.connect("accounts.db")
+    initialize_database()
+    connection = sqlite3.connect(DATABASE_PATH)
     cursor = connection.cursor()
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY,
-            username TEXT NOT NULL UNIQUE,
-            email TEXT NOT NULL UNIQUE,
-            password_hash TEXT NOT NULL,
-            email_verified INTEGER NOT NULL DEFAULT 0
-        )
-    """)
 
     username = "text user"
     email = "text@example.com"
@@ -123,15 +148,6 @@ if __name__ == "__main__":
         (username, email, password_hash)
         VALUES (?, ?, ?)
     """, (username, email, password_hash))
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS email_verifications (
-            user_id INTEGER PRIMARY KEY,
-            token_hash TEXT NOT NULL,
-            expires_at TEXT NOT NULL,
-            FOREIGN KEY (user_id) REFERENCES users(id)
-        )
-    """)
 
     connection.commit()
     print("Database connected!")

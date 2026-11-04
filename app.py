@@ -3,12 +3,20 @@ from flask import Flask, jsonify, render_template, request
 from main import addition, subtraction, multiplication, division, square
 from main import solve_algebra
 import sqlite3
-from accounts import create_user, create_verification_token, verify_email_token, get_user_by_email
+from accounts import (
+    DATABASE_PATH,
+    create_user,
+    create_verification_token,
+    get_user_by_email,
+    initialize_database,
+    verify_email_token,
+)
 
 
 from mailer import VerificationEmailError, send_verification_email
 
 app = Flask(__name__)
+initialize_database()
 
 @app.route("/verify-email", methods=["GET", "POST"])
 def verify_email():
@@ -27,7 +35,7 @@ def verify_email():
         if not isinstance(code, str) or len(code) != 6 or not code.isdigit():
             return jsonify({"error": "Enter the 6-digit verification code"}), 400
 
-        connection = sqlite3.connect("accounts.db")
+        connection = sqlite3.connect(DATABASE_PATH)
 
         try:
             verified = verify_email_token(connection, code, email.strip())
@@ -44,7 +52,7 @@ def verify_email():
     if not token:
         return "Missing verification token.", 400
 
-    connection = sqlite3.connect("accounts.db")
+    connection = sqlite3.connect(DATABASE_PATH)
 
     try:
         verified = verify_email_token(connection, token)
@@ -133,7 +141,7 @@ def signup():
     if len(password) < 12:
         return jsonify({"error": "Password must be at least 12 characters"}), 400
 
-    connection = sqlite3.connect("accounts.db")
+    connection = sqlite3.connect(DATABASE_PATH)
 
     try:
         user_id = create_user(connection, username, email, password)
@@ -172,7 +180,7 @@ def resend_verification():
     if not isinstance(email, str) or not email.strip():
         return jsonify({"error": "Email is required"}), 400
 
-    connection = sqlite3.connect("accounts.db")
+    connection = sqlite3.connect(DATABASE_PATH)
 
     try:
         user = get_user_by_email(connection, email.strip())
