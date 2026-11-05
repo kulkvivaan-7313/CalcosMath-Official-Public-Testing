@@ -11,6 +11,10 @@ from accounts import (
     initialize_database,
     verify_email_token,
 )
+from dotenv import load_dotenv
+load_dotenv() # Load environment variables from .env file
+
+
 
 
 from mailer import VerificationEmailError, send_verification_email
@@ -206,4 +210,4 @@ def resend_verification():
     return jsonify({"message": "Verification email sent"}), 200
 
 if __name__ == "__main__":
-    app.run()
+    app.run(port=5001)
