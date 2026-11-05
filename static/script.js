@@ -110,11 +110,9 @@ if (signupForm) {
             resultElement.textContent =
                 data.message || data.error || "Something went wrong.";
 
-            if (response.ok || data.account_created) {
+            if (response.ok) {
                 showVerificationForm(document.getElementById("email").value);
-                if (response.ok) {
-                    document.getElementById("verificationCode").focus();
-                }
+                document.getElementById("verificationCode").focus();
             }
 
         } catch (error) {
@@ -148,6 +146,10 @@ if (verificationForm) {
             const data = await response.json();
             resultElement.textContent =
                 data.message || data.error || "Something went wrong.";
+            if (response.ok) {
+                verificationForm.hidden = true;
+                signupForm.hidden = true;
+            }
         } catch (error) {
             resultElement.textContent =
                 "Email verification could not be completed. Check your connection and try again.";

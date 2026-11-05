@@ -1,4 +1,6 @@
+import logging
 import os
+import traceback
 import resend
 
 
@@ -18,7 +20,7 @@ def send_verification_email(email, token):
     resend.api_key = api_key
 
     try:
-        resend.Emails.send({
+        response = resend.Emails.send({
             "from": from_email,
             "to": [email],
             "subject": "Verify your CM-84 account",
@@ -30,6 +32,26 @@ def send_verification_email(email, token):
             )
         })
     except Exception as error:
+        traceback_text = "".join(traceback.format_exception(error))
+        for sensitive_value in (api_key, token, email):
+            if sensitive_value:
+                traceback_text = traceback_text.replace(
+                    sensitive_value,
+                    "[REDACTED]",
+                )
+        logging.error("Resend email delivery failed:\n%s", traceback_text)
         raise VerificationEmailError(
             "The verification email could not be sent. Please try again."
         ) from error
+
+    response_id = (
+        response.get("id")
+        if isinstance(response, dict)
+        else getattr(response, "id", None)
+    )
+    if not response_id:
+        raise VerificationEmailError(
+            "The verification email was not accepted for delivery."
+        )
+
+    return True

@@ -2,13 +2,18 @@
 from flask import Flask, jsonify, render_template, request
 from main import addition, subtraction, multiplication, division, square
 from main import solve_algebra
+import re
 import sqlite3
 from accounts import (
     DATABASE_PATH,
-    create_user,
+    confirm_pending_registration_delivery,
+    create_pending_registration,
     create_verification_token,
+    delete_pending_registration,
     get_user_by_email,
     initialize_database,
+    resend_pending_verification,
+    verify_pending_registration,
     verify_email_token,
 )
 from dotenv import load_dotenv
@@ -42,14 +47,30 @@ def verify_email():
         connection = sqlite3.connect(DATABASE_PATH)
 
         try:
-            verified = verify_email_token(connection, code, email.strip())
+            result = verify_pending_registration(
+                connection,
+                email.strip(),
+                code,
+            )
+            if result == "not_found":
+                verified = verify_email_token(connection, code, email.strip())
+                result = "verified" if verified else "invalid"
         finally:
             connection.close()
 
-        if verified:
-            return jsonify({"message": "Your email has been verified!"})
+        if result == "verified":
+            return jsonify({
+                "message": "Your account has been created successfully."
+            })
 
-        return jsonify({"error": "Invalid or expired verification code"}), 400
+        errors = {
+            "invalid": "Invalid verification code",
+            "expired": "Verification code expired. Request a new code.",
+            "locked": "Too many incorrect attempts. Request a new code.",
+            "delivery_pending": "Verification email delivery is not confirmed.",
+        }
+        status = 503 if result == "delivery_pending" else 400
+        return jsonify({"error": errors[result]}), status
 
     token = request.args.get("token")
 
@@ -142,14 +163,24 @@ def signup():
                for value in (username, email, password)):
         return jsonify({"error": "All fields are required"}), 400
 
+    username = username.strip()
+    email = email.strip().lower()
+
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        return jsonify({"error": "Enter a valid email address"}), 400
+
     if len(password) < 12:
         return jsonify({"error": "Password must be at least 12 characters"}), 400
 
     connection = sqlite3.connect(DATABASE_PATH)
 
     try:
-        user_id = create_user(connection, username, email, password)
-        verification_token = create_verification_token(connection, user_id)
+        pending_id, verification_code, generation = create_pending_registration(
+            connection,
+            username,
+            email,
+            password,
+        )
 
     except sqlite3.IntegrityError:
         return jsonify({"error": "Username or email already exists"}), 409
@@ -158,17 +189,38 @@ def signup():
         connection.close()
 
     try:
-        send_verification_email(email, verification_token)
+        if not send_verification_email(email, verification_code):
+            raise VerificationEmailError(
+                "The verification email could not be accepted for delivery."
+            )
     except VerificationEmailError as error:
         app.logger.warning("Signup verification email could not be sent.")
+        connection = sqlite3.connect(DATABASE_PATH)
+        try:
+            delete_pending_registration(connection, pending_id, generation)
+        finally:
+            connection.close()
         return jsonify({
             "error": str(error),
-            "account_created": True
+        }), 503
+
+    connection = sqlite3.connect(DATABASE_PATH)
+    try:
+        delivery_confirmed = confirm_pending_registration_delivery(
+            connection,
+            pending_id,
+            generation,
+        )
+    finally:
+        connection.close()
+
+    if not delivery_confirmed:
+        return jsonify({
+            "error": "The verification registration changed during delivery. Request a new code."
         }), 503
 
     return jsonify({
-        "message": "Account created. Email verification required.",
-        "user_id": user_id
+        "message": "Verification email sent. Enter the code to create your account."
     }), 201
 
 
@@ -187,22 +239,46 @@ def resend_verification():
     connection = sqlite3.connect(DATABASE_PATH)
 
     try:
-        user = get_user_by_email(connection, email.strip())
+        pending = resend_pending_verification(connection, email.strip())
+        if pending is not None:
+            pending_id, token, generation = pending
+            pending_email = email.strip()
+        else:
+            user = get_user_by_email(connection, email.strip())
 
-        if user is None:
-            return jsonify({"error": "Account not found"}), 404
+            if user is None:
+                return jsonify({"error": "Account not found"}), 404
 
-        user_id, email_verified = user
-        if email_verified:
-            return jsonify({"error": "This email is already verified"}), 409
+            user_id, email_verified = user
+            if email_verified:
+                return jsonify({"error": "This email is already verified"}), 409
 
-        token = create_verification_token(connection, user_id)
-
+            token = create_verification_token(connection, user_id)
+            pending_id = None
+            generation = None
+            pending_email = email.strip()
     finally:
         connection.close()
 
     try:
-        send_verification_email(email.strip(), token)
+        if not send_verification_email(pending_email, token):
+            raise VerificationEmailError(
+                "The verification email could not be accepted for delivery."
+            )
+
+        if pending_id is not None:
+            connection = sqlite3.connect(DATABASE_PATH)
+            try:
+                if not confirm_pending_registration_delivery(
+                    connection,
+                    pending_id,
+                    generation,
+                ):
+                    raise VerificationEmailError(
+                        "The verification registration is no longer available."
+                    )
+            finally:
+                connection.close()
     except VerificationEmailError as error:
         app.logger.warning("Resend verification email could not be sent.")
         return jsonify({"error": str(error)}), 503

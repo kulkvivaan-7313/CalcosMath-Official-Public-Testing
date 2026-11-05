@@ -62,17 +62,20 @@
 <h1>👤 Create Your CM-84 Account</h1>
 
 <form id="signupForm" method="post" action="{{ url_for('signup') }}">
-    <input type="text" id="username" name="username" placeholder="Username" required>
+    <input type="text" id="username" name="username" placeholder="Username"
+           autocomplete="username" required>
 
     <br><br>
 
-    <input type="email" id="email" name="email" placeholder="Email address" required>
+    <input type="email" id="email" name="email" placeholder="Email address"
+           autocomplete="email" required>
 
     <br><br>
 
     <input type="password" id="password"
            name="password"
            placeholder="Password (12 characters minimum)"
+           autocomplete="new-password"
            minlength="12" required>
 
     <br><br>
