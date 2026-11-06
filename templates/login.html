@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CM-84 OS 1</title>
+</head>
+<body>
+    <h1 style="font-size: 50px; text-align: center;">
+        🎉 GRAND OPENING! 🎉
+    </h1>
+
+    <h1 style="font-size: 45px; text-align: center;">
+        🚀 CM-84 Developer Beta OS 1.0.1 🚀
+    </h1>
+
+    <h2 style="text-align: center;">
+        🐍 Powered by Python • Flask • HTML
+    </h2>
+
+    <p style="text-align: center;">
+        From the terminal to the browser. A new era begins!
+        It will be released to the public on November 1, 2026!!!
+    </p>
+
+    <h1>Login</h1>
+
+    <form id="loginForm" method="post" action="{{ url_for('login') }}">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="Email"
+               autocomplete="username" required>
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" placeholder="Password"
+               autocomplete="current-password" required>
+        <button type="submit">Login</button>
+    </form>
+
+    <p id="loginResult"></p>
+    <p><a href="{{ url_for('home') }}">Back to signup</a></p>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

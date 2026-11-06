@@ -94,6 +94,8 @@
     <button type="button" id="resendVerificationButton">Resend Code</button>
 </form>
 
+<p>Already have an account? <a href="{{ url_for('login') }}">Login!</a></p>
+
 <p id="verificationResult"></p>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>

@@ -278,6 +278,24 @@ def verify_email_token(connection, token, email=None):
     return True
 
 
+def authenticate_user(connection, email, password):
+    if not isinstance(email, str) or not isinstance(password, str):
+        return None
+
+    cursor = connection.cursor()
+    cursor.execute("""
+        SELECT id, username, password_hash
+        FROM users
+        WHERE email = ? COLLATE NOCASE AND email_verified = 1
+    """, (email.strip(),))
+    user = cursor.fetchone()
+
+    if user is None or not check_password_hash(user[2], password):
+        return None
+
+    return user[0], user[1]
+
+
 def create_verification_token(connection, user_id):
     token = _new_verification_code()
     token_hash = hashlib.sha256(token.encode()).hexdigest()

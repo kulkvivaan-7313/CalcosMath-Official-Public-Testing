@@ -2,6 +2,7 @@ import importlib
 import sqlite3
 import tempfile
 import unittest
+from contextlib import closing
 from pathlib import Path
 from unittest.mock import patch
 
@@ -59,7 +60,7 @@ class SignupFlowTests(unittest.TestCase):
         })
 
     def rows(self, query, parameters=()):
-        with sqlite3.connect(self.database_path) as connection:
+        with closing(sqlite3.connect(self.database_path)) as connection:
             return connection.execute(query, parameters).fetchall()
 
     def verify(self, code, email="new@example.com"):
@@ -117,11 +118,12 @@ class SignupFlowTests(unittest.TestCase):
     def test_expired_code_does_not_create_user(self):
         self.assertEqual(self.signup().status_code, 201)
 
-        with sqlite3.connect(self.database_path) as connection:
+        with closing(sqlite3.connect(self.database_path)) as connection:
             connection.execute(
                 "UPDATE pending_registrations SET expires_at = ?",
                 ("2000-01-01T00:00:00+00:00",),
             )
+            connection.commit()
 
         response = self.verify(self.sent_codes[0][1])
 
@@ -167,13 +169,14 @@ class SignupFlowTests(unittest.TestCase):
 
     def test_existing_users_are_preserved_and_block_duplicate_signup(self):
         password_hash = generate_password_hash("an-existing-password")
-        with sqlite3.connect(self.database_path) as connection:
+        with closing(sqlite3.connect(self.database_path)) as connection:
             connection.execute(
                 """INSERT INTO users
                    (username, email, password_hash, email_verified)
                    VALUES (?, ?, ?, 1)""",
                 ("existing-user", "Existing@example.com", password_hash),
             )
+            connection.commit()
 
         duplicate_username = self.signup(
             username="EXISTING-USER",
@@ -218,7 +221,7 @@ class SignupFlowTests(unittest.TestCase):
         )
 
     def test_only_the_delivered_code_generation_can_be_verified(self):
-        with sqlite3.connect(self.database_path) as connection:
+        with closing(sqlite3.connect(self.database_path)) as connection:
             pending_id, _, original_generation = (
                 accounts.create_pending_registration(
                     connection,

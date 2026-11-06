@@ -1,11 +1,15 @@
 
-from flask import Flask, jsonify, render_template, request
+import os
+import sqlite3
+from datetime import timedelta
+
+from flask import Flask, jsonify, render_template, request, session, url_for
 from main import addition, subtraction, multiplication, division, square
 from main import solve_algebra
 import re
-import sqlite3
 from accounts import (
     DATABASE_PATH,
+    authenticate_user,
     confirm_pending_registration_delivery,
     create_pending_registration,
     create_verification_token,
@@ -25,6 +29,16 @@ load_dotenv() # Load environment variables from .env file
 from mailer import VerificationEmailError, send_verification_email
 
 app = Flask(__name__)
+app.config.update(
+    SECRET_KEY=os.getenv("FLASK_SECRET_KEY"),
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=os.getenv(
+        "SESSION_COOKIE_SECURE",
+        "true",
+    ).strip().lower() in {"1", "true", "yes"},
+    SESSION_COOKIE_SAMESITE="Lax",
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=12),
+)
 initialize_database()
 
 @app.route("/verify-email", methods=["GET", "POST"])
@@ -93,6 +107,49 @@ def verify_email():
 @app.route("/")
 def home():
     return render_template("index.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "GET":
+        return render_template("login.html")
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Invalid request"}), 400
+
+    email = data.get("email")
+    password = data.get("password")
+    if (
+        not isinstance(email, str)
+        or not email.strip()
+        or not isinstance(password, str)
+        or not password
+    ):
+        return jsonify({"error": "Email and password are required"}), 400
+
+    if not app.config.get("SECRET_KEY"):
+        app.logger.error("Login unavailable because FLASK_SECRET_KEY is not configured.")
+        return jsonify({"error": "Login is temporarily unavailable."}), 503
+
+    connection = sqlite3.connect(DATABASE_PATH)
+    try:
+        user = authenticate_user(connection, email, password)
+    finally:
+        connection.close()
+
+    if user is None:
+        return jsonify({"error": "Invalid email or password"}), 401
+
+    user_id, _username = user
+    session.clear()
+    session["user_id"] = user_id
+    session.permanent = True
+
+    return jsonify({
+        "message": "Login successful",
+        "redirect_url": url_for("home"),
+    })
 
 
 @app.route("/algebra.html")

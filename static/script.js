@@ -76,6 +76,43 @@ async function solveAlgebra(operation, outputType = "text") {
 
 // CM-84 Account Signup
 
+const loginForm = document.getElementById("loginForm");
+
+if (loginForm) {
+    loginForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const resultElement = document.getElementById("loginResult");
+        resultElement.textContent = "Logging in...";
+
+        try {
+            const response = await fetch("/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email: document.getElementById("email").value,
+                    password: document.getElementById("password").value
+                })
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                resultElement.textContent =
+                    data.error || "Login could not be completed.";
+                return;
+            }
+
+            resultElement.textContent = data.message || "Login successful.";
+            window.location.assign(data.redirect_url || "/");
+        } catch (error) {
+            resultElement.textContent =
+                "Login could not be completed. Check your connection and try again.";
+        }
+    });
+}
+
 const signupForm = document.getElementById("signupForm");
 
 function showVerificationForm(email) {
