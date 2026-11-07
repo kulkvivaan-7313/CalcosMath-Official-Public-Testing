@@ -10,6 +10,202 @@
 
     <meta charset="UTF-8">
     <title>CM-84 OS 1</title>
+
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: "Google Sans", "Noto Sans", sans-serif;
+            color: #172033;
+            background: #edf3ff;
+            font-synthesis: none;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            width: min(100% - 32px, 920px);
+            margin: 0 auto;
+            padding: clamp(24px, 6vw, 64px) 0;
+            line-height: 1.6;
+            background:
+                radial-gradient(ellipse at 12% 8%, rgb(174 198 255 / 55%), transparent 36rem),
+                radial-gradient(ellipse at 92% 38%, rgb(217 195 255 / 44%), transparent 32rem),
+                linear-gradient(145deg, #f8faff, #edf3ff 58%, #f5f0ff);
+            background-attachment: fixed;
+        }
+
+        h1,
+        h2,
+        p {
+            margin-top: 0;
+        }
+
+        h1 {
+            margin-bottom: 16px;
+            color: #172554;
+            line-height: 1.15;
+            letter-spacing: -0.035em;
+        }
+
+        h2 {
+            margin: 32px 0 12px;
+            color: #263b68;
+            line-height: 1.25;
+            letter-spacing: -0.02em;
+        }
+
+        body > h1:first-child {
+            margin-top: 12px;
+            color: #3949ab;
+        }
+
+        body > h1:nth-of-type(2),
+        body > h2:first-of-type,
+        body > p:first-of-type {
+            text-align: center;
+        }
+
+        body > p {
+            color: #53617b;
+        }
+
+        input,
+        select {
+            min-height: 48px;
+            margin: 6px 6px 6px 0;
+            padding: 12px 15px;
+            border: 1px solid rgb(116 137 177 / 28%);
+            border-radius: 14px;
+            outline: none;
+            background: rgb(255 255 255 / 74%);
+            color: #172033;
+            font: inherit;
+            box-shadow: 0 4px 16px rgb(52 73 125 / 5%);
+            transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+        }
+
+        input::placeholder {
+            color: #8490a6;
+        }
+
+        input:focus,
+        select:focus {
+            border-color: #6878e8;
+            background: #fff;
+            box-shadow: 0 0 0 4px rgb(104 120 232 / 15%);
+        }
+
+        button {
+            min-height: 46px;
+            margin: 6px 6px 6px 0;
+            padding: 11px 20px;
+            border: 1px solid rgb(255 255 255 / 75%);
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgb(104 120 232 / 88%), rgb(125 93 214 / 88%));
+            color: #fff;
+            font: 600 0.98rem "Google Sans", "Noto Sans", sans-serif;
+            letter-spacing: 0.01em;
+            cursor: pointer;
+            box-shadow:
+                inset 0 1px 0 rgb(255 255 255 / 35%),
+                0 8px 22px rgb(84 86 180 / 22%);
+            -webkit-backdrop-filter: blur(16px) saturate(150%);
+            backdrop-filter: blur(16px) saturate(150%);
+            transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.06);
+            box-shadow:
+                inset 0 1px 0 rgb(255 255 255 / 45%),
+                0 12px 28px rgb(84 86 180 / 30%);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:focus-visible,
+        a:focus-visible {
+            outline: 3px solid #5366db;
+            outline-offset: 3px;
+        }
+
+        a {
+            color: #4a59c7;
+            font-weight: 600;
+            text-decoration-thickness: 1px;
+            text-underline-offset: 4px;
+        }
+
+        a:hover {
+            color: #714cc5;
+        }
+
+        #result,
+        #arithmeticResult,
+        #signupResult,
+        #verificationResult {
+            min-height: 1.6em;
+            color: #34446c;
+            font-weight: 600;
+        }
+
+        form {
+            margin: 16px 0;
+        }
+
+        hr {
+            height: 1px;
+            margin: 32px 0;
+            border: 0;
+            background: linear-gradient(90deg, transparent, rgb(90 108 160 / 28%), transparent);
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                width: min(100% - 24px, 920px);
+                padding-top: 28px;
+            }
+
+            body > h1:first-child {
+                font-size: clamp(30px, 9vw, 42px) !important;
+            }
+
+            body > h1:nth-of-type(2) {
+                font-size: clamp(26px, 7vw, 38px) !important;
+            }
+
+            input,
+            select {
+                width: 100%;
+                margin-right: 0;
+            }
+
+            button {
+                margin-top: 10px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
 </head>
 
 <body class="body">
@@ -58,7 +254,7 @@
     <p id="arithmeticResult"></p>
 
     <!-- Algebra Calculator Navigation -->
-    <a href="{{ url_for('algebra_page') }}">Algebraic Calculator</a>
+    <a href="algebra.html">Algebraic Calculator</a>
 
     <hr>
 
